@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.4.3",
+    "element-ui": "^2.13.0",
+    "sortablejs": "^1.10.1",
     "vue": "^2.6.10"
   },
   "devDependencies": {
