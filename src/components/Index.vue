@@ -13,7 +13,7 @@
             <span class="help" slot="reference">文件路径</span>
           </el-popover>
         </template>
-        <el-input placeholder="请输入内容" v-model="form.path"></el-input>
+        <el-input placeholder="请输入内容" v-model="form.filePath"></el-input>
       </el-form-item>
       <el-form-item>
         <template #label>
@@ -32,7 +32,7 @@
             <span class="help" slot="reference">请求地址</span>
           </el-popover>
         </template>
-        <el-input placeholder="请输入内容" v-model="form.url"></el-input>
+        <el-input placeholder="请输入内容" v-model="form.path"></el-input>
       </el-form-item>
       <el-form-item>
         <template #label>
@@ -231,18 +231,11 @@
                   :label="parameterType"
                 ></el-option>
               </el-select>
-              <el-select
+              <el-switch
                 v-else-if="scope.column.property === 'required'"
                 v-model="scope.row.required"
-                placeholder="请选择"
               >
-                <el-option
-                  v-for="yesOrNo in yesOrNos"
-                  :key="yesOrNo.value"
-                  :value="yesOrNo.value"
-                  :label="yesOrNo.label"
-                ></el-option>
-              </el-select>
+              </el-switch>
               <el-input
                 v-else-if="scope.column.property === 'ref'"
                 :disabled="
@@ -300,13 +293,28 @@
         <template #label>
           <el-popover
             placement="left-start"
+            title="使用默认成功返回请求响应模版"
+            width="200"
+            trigger="hover"
+          >
+            <span>
+              默认指令：<code><pre>{{responseTemplate}}</pre></code>
+            </span>
+            <span class="help" slot="reference">使用默认请求响应</span>
+          </el-popover>
+        </template>
+        <el-switch v-model="form.openResponseTemplate"></el-switch>
+      </el-form-item>
+      <el-form-item>
+        <template #label>
+          <el-popover
+            placement="left-start"
             title="请求响应设置"
             width="200"
             trigger="hover"
           >
             <span>
               如果参数位置为<code>body</code>, 请填写引用，指向<code>自定义参数</code>，
-              默认指令：<code><pre>{{responseTemplate}}</pre></code>
             </span>
             <span class="help" slot="reference">请求响应设置</span>
           </el-popover>
@@ -345,10 +353,6 @@
                   :label="definitionType"
                 ></el-option>
               </el-select>
-              <el-switch
-                v-else-if="scope.column.property === 'use'"
-                v-model="scope.row.use"
-              ></el-switch>
               <el-input
                 v-else-if="scope.column.property === 'ref'"
                 :disabled="
@@ -631,13 +635,9 @@ export default {
       parameterTypes: ["string", "number", "integer", "boolean", "file"],
       parameterDisableHef: [],
       parameterDisableDefault: [],
-      yesOrNos: [
-        { label: "是", value: "yes" },
-        { label: "否", value: "no" }
-      ],
       form: {
+        filePath: "",
         path: "",
-        url: "",
         method: "",
         tags: [],
         security: true,
@@ -647,6 +647,7 @@ export default {
         consumes: ["application/x-www-form-urlencoded"],
         produces: ["application/json", "application/xml"],
         parameter: [],
+        openResponseTemplate: true,
         response: [],
         definition: []
       },
@@ -722,7 +723,6 @@ export default {
         id: 0,
         status: "",
         description: "",
-        use: true,
         type: "",
         ref: "",
         example: ""
@@ -735,10 +735,6 @@ export default {
         {
           label: "描述",
           prop: "description"
-        },
-        {
-          label: "使用默认指令",
-          prop: "use"
         },
         {
           label: "类型",
@@ -765,10 +761,6 @@ export default {
         {
           label: "描述",
           prop: "description"
-        },
-        {
-          label: "使用默认指令",
-          prop: "use"
         },
         {
           label: "类型",
@@ -864,7 +856,7 @@ export default {
       fileCompare: false,
       isGenerator: false,
       generatorSuccess: false,
-      generatorMessage: '',
+      generatorMessage: "",
       previewData: []
     };
   },
@@ -884,7 +876,8 @@ export default {
       _this.parameterIns = res.parameterIns;
       _this.definitionTypes = res.definitionTypes;
       _this.parameterTypes = res.parameterTypes;
-      _this.form.path = res.path;
+      _this.form.filePath = res.filePath;
+      _this.form.openResponseTemplate = res.default.openResponseTemplate;
       _this.responseTemplate = res.default.responseTemplate;
       _this.formatParameter(res.default.parameters, _this);
       _this.formatResponse(res.default.responses, _this);
@@ -1299,16 +1292,8 @@ export default {
         Message.error("请求返回内容类型不能为空");
         return false;
       }
-      if (!this.form.parameter.length) {
-        Message.error("请求参数不能为空");
-        return false;
-      }
       if (!this.form.response.length) {
         Message.error("响应设置不能为空");
-        return false;
-      }
-      if (!this.form.definition.length) {
-        Message.error("自定义参数不能为空");
         return false;
       }
       return true;
