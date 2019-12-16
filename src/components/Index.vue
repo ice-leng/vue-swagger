@@ -83,7 +83,7 @@
             width="200"
             trigger="hover"
           >
-            <span>当前接口可以管理多个标签分类</span>
+            <span>标签分类可以定义多个，<code>生成的文件名称为标签自然排序第一个</code></span>
             <span class="help" slot="reference">标签分类</span>
           </el-popover>
         </template>
@@ -305,8 +305,8 @@
             trigger="hover"
           >
             <span>
-              如果参数位置为<code>body</code>, 请填写引用，指向<code>自定义参数</code>
-              <code><pre>{{responseTemplate}}</pre></code>
+              如果参数位置为<code>body</code>, 请填写引用，指向<code>自定义参数</code>，
+              默认指令：<code><pre>{{responseTemplate}}</pre></code>
             </span>
             <span class="help" slot="reference">请求响应设置</span>
           </el-popover>
@@ -539,12 +539,41 @@
         </el-button>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="onSubmit">预览</el-button>
-        <el-button
-          type="success" v-if="showSuccess" @click="onSubmit"
-        >生成
-        </el-button
+        <el-button type="primary" @click="preview">预览</el-button>
+        <el-button type="success" :disabled="!isGenerator" v-if="showSuccess" @click="generator">生成</el-button>
+      </el-form-item>
+      <el-form-item>
+        <el-table
+          :data="previewData"
+          style="width: 100%"
+          v-if="isPreview"
         >
+          <el-table-column prop="file" label="文件">
+            <template slot-scope="scope">
+              <el-link type="primary" @click="fileCompare = true">
+                {{scope.row.file}}
+              </el-link>
+              <el-dialog title="文件对比" :visible.sync="fileCompare">
+                <code-diff :old-string="scope.row.oldStr" :new-string="scope.row.newStr" :context="10" />
+                <div slot="footer" class="dialog-footer">
+                  <el-button @click="fileCompare = false">取 消</el-button>
+                  <el-button type="primary" @click="sureCompare">确 定</el-button>
+                </div>
+              </el-dialog>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="status"
+            label="状态"
+            width="180"
+          >
+          </el-table-column>
+        </el-table>
+        <el-row v-if="generatorSuccess">
+          <div class="default-view-results">
+            <pre>{{generatorMessage}}</pre>
+          </div>
+        </el-row>
       </el-form-item>
     </el-form>
   </div>
@@ -554,9 +583,11 @@
 import Sortable from "sortablejs";
 import { randomByName } from "../random";
 import { Message } from "element-ui";
+import CodeDiff from "vue-code-diff";
 
 export default {
   name: "Index",
+  components: { CodeDiff },
   data() {
     return {
       formMethods: [
@@ -580,7 +611,6 @@ export default {
       inputTagVisible: false,
       dialogFormVisible: false,
       inputTagValue: "",
-      showSuccess: false,
       tableIndex: -1,
       confirmSure: false,
       confirmSure2: false,
@@ -827,7 +857,15 @@ export default {
         }
       ],
       definitionData: {},
-      isLoadDefinition: false
+      isLoadDefinition: false,
+      previewAction: ["无变化", "创建", "覆盖"],
+      showSuccess: false,
+      isPreview: false,
+      fileCompare: false,
+      isGenerator: false,
+      generatorSuccess: false,
+      generatorMessage: '',
+      previewData: []
     };
   },
   mounted() {
@@ -854,10 +892,6 @@ export default {
     });
   },
   methods: {
-    onSubmit() {
-      // eslint-disable-next-line no-console
-      console.log(this.form);
-    },
     tagDelete(tag) {
       this.form.tags.splice(this.form.tags.indexOf(tag), 1);
     },
@@ -941,10 +975,16 @@ export default {
       }
     },
     randomByRow(row) {
+      // eslint-disable-next-line no-console
       let id = row.id;
       let type = row.type;
       if (this.parameterDisableDefault[id] !== 1 || !type) {
-        row.example = "";
+        if (row.hasOwnProperty("example")) {
+          row.example = "";
+        }
+        if (row.hasOwnProperty("default")) {
+          row.default = "";
+        }
         return;
       }
       let name = row.name;
@@ -952,7 +992,12 @@ export default {
       if (typeof value === "boolean") {
         value = value.toString();
       }
-      row.example = value;
+      if (row.hasOwnProperty("example")) {
+        row.example = value;
+      }
+      if (row.hasOwnProperty("default")) {
+        row.default = value;
+      }
     },
     definitionChangeIn(row, type = 1) {
       let id = row.id;
@@ -960,7 +1005,8 @@ export default {
       if (name === "object" || name === "array") {
         this.parameterDisableHef[id] = 1;
         this.parameterDisableDefault[id] = 0;
-      } else {
+      }
+      else {
         row.ref = "";
         this.parameterDisableHef[id] = 0;
         this.parameterDisableDefault[id] = 1;
@@ -1081,7 +1127,8 @@ export default {
           vue.definitionChangeIn(responses[i], 0);
         }
         vue.form.response = responses;
-      } else {
+      }
+      else {
         vue.defaultRequestData();
       }
     },
@@ -1171,7 +1218,8 @@ export default {
           this.definitionChangeIn(definitions[i], 0);
         }
         this.definitionData.definition = definitions;
-      } else {
+      }
+      else {
         this.defaultDefinitionData(template);
       }
       add = add.concat(this.definitionData.definition);
@@ -1217,13 +1265,90 @@ export default {
       }
       if (this.definitionData.edit < 0) {
         this.form.definition.push(this.definitionData);
-      } else {
+      }
+      else {
         this.form.definition[this.definitionData.edit] = this.definitionData;
       }
       this.dialogFormVisible = false;
     },
     tagDelete2(tag) {
       this.form.definition.splice(tag, 1);
+    },
+    checkForm() {
+      if (!this.form.path) {
+        Message.error("文件路径不能为空");
+        return false;
+      }
+      if (!this.form.url) {
+        Message.error("请求不能为空");
+        return false;
+      }
+      if (!this.form.method) {
+        Message.error("请求方法不能为空");
+        return false;
+      }
+      if (!this.form.tags.length) {
+        Message.error("标签分类不能为空");
+        return false;
+      }
+      if (!this.form.consumes.length) {
+        Message.error("请求内容类型不能为空");
+        return false;
+      }
+      if (!this.form.produces.length) {
+        Message.error("请求返回内容类型不能为空");
+        return false;
+      }
+      if (!this.form.parameter.length) {
+        Message.error("请求参数不能为空");
+        return false;
+      }
+      if (!this.form.response.length) {
+        Message.error("响应设置不能为空");
+        return false;
+      }
+      if (!this.form.definition.length) {
+        Message.error("自定义参数不能为空");
+        return false;
+      }
+      return true;
+    },
+    preview() {
+      if (!this.checkForm()) {
+        return;
+      }
+      let _this = this;
+      _this.$http.post("swagger/generator?t=preview", this.form).then(res => {
+        _this.showSuccess = true;
+        _this.isPreview = true;
+        res["status"] = _this.previewAction[res.action];
+        _this.previewData = [res];
+      });
+    },
+    sureCompare() {
+      this.fileCompare = false;
+      this.isGenerator = true;
+    },
+    generator() {
+      if (!this.checkForm()) {
+        return;
+      }
+      let _this = this;
+      _this.$http.post("swagger/generator?t=generator", this.form).then(res => {
+        _this.isPreview = true;
+        _this.isPreview = false;
+        _this.generatorSuccess = true;
+        _this.generatorMessage = res.message;
+      });
+    }
+  },
+  watch: {
+    form: {
+      handler(newV, oldV) {
+        // eslint-disable-next-line no-console
+        console.log(newV, oldV);
+      },
+      deep: true
     }
   }
 };
@@ -1282,11 +1407,48 @@ code a {
   margin-left: 20px;
 }
 
-.moveTag, .formRequest, .formResponse, .formDefinition {
+.moveTag,
+.formRequest,
+.formResponse,
+.formDefinition {
   cursor: move;
 }
+
 .moveTag2 {
   cursor: pointer;
 }
 
+.default-view-results pre {
+  overflow: auto;
+  background-color: #333;
+  max-height: 300px;
+  color: white;
+  padding: 10px;
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+.default-view-results pre .error {
+  background: #FFE0E1;
+  color: black;
+  padding: 1px;
+}
+
+pre {
+  display: block;
+  padding: 9.5px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.42857143;
+  color: #333333;
+  word-break: break-all;
+  word-wrap: break-word;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+code, kbd, pre, samp {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
 </style>
