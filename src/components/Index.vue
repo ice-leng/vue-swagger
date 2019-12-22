@@ -567,15 +567,22 @@
             </template>
           </el-table-column>
           <el-table-column
-            prop="status"
+            prop="action"
             label="状态"
             width="180"
           >
+            <template slot-scope="scope">
+              {{previewAction[scope.row.action]}}
+            </template>
           </el-table-column>
         </el-table>
         <el-row v-if="generatorSuccess">
           <div class="default-view-results">
-            <pre>{{generatorMessage}}</pre>
+            <pre>
+              {{generatorMessage.message}}
+              <br/>
+              <span v-if="generatorMessage.error" class="error" v-html="generatorMessage.error"></span>
+            </pre>
           </div>
         </el-row>
       </el-form-item>
@@ -628,7 +635,7 @@ export default {
         in: "",
         type: "",
         ref: "",
-        required: "",
+        required: true,
         default: ""
       },
       parameterIns: ["formData", "path", "query", "header", "body"],
@@ -1204,15 +1211,14 @@ export default {
       if (definitions.length) {
         for (let i = 0; i < definitions.length; ++i) {
           this.tableIndex++;
-          if (definitions[i]["edit"] < 0) {
+          if (definitions[i]["id"] === undefined || definitions[i]["edit"] < 0) {
             definitions[i]["id"] = this.tableIndex;
           }
           definitions[i]["template"] = template;
           this.definitionChangeIn(definitions[i], 0);
         }
         this.definitionData.definition = definitions;
-      }
-      else {
+      } else {
         this.defaultDefinitionData(template);
       }
       add = add.concat(this.definitionData.definition);
@@ -1268,11 +1274,11 @@ export default {
       this.form.definition.splice(tag, 1);
     },
     checkForm() {
-      if (!this.form.path) {
+      if (!this.form.filePath) {
         Message.error("文件路径不能为空");
         return false;
       }
-      if (!this.form.url) {
+      if (!this.form.path) {
         Message.error("请求不能为空");
         return false;
       }
@@ -1306,8 +1312,9 @@ export default {
       _this.$http.post("swagger/generator?t=preview", this.form).then(res => {
         _this.showSuccess = true;
         _this.isPreview = true;
-        res["status"] = _this.previewAction[res.action];
-        _this.previewData = [res];
+        _this.isGenerator = false;
+        _this.generatorSuccess = false;
+        _this.previewData = res;
       });
     },
     sureCompare() {
@@ -1320,10 +1327,9 @@ export default {
       }
       let _this = this;
       _this.$http.post("swagger/generator?t=generator", this.form).then(res => {
-        _this.isPreview = true;
         _this.isPreview = false;
         _this.generatorSuccess = true;
-        _this.generatorMessage = res.message;
+        _this.generatorMessage = res;
       });
     }
   },
