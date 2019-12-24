@@ -3,13 +3,13 @@ import App from "./App.vue";
 import ElementUI, { Loading, Message } from "element-ui";
 import "element-ui/lib/theme-chalk/index.css";
 import Axios from "axios";
-import { getUrl } from "./config";
+import ServerConfig from "../public/config";
 
 Vue.config.productionTip = false;
 
 Vue.prototype.$http = Axios;
 Axios.defaults.timeout = 30000;
-Axios.defaults.baseURL = getUrl();
+Axios.defaults.baseURL = ServerConfig.baseUrl;
 
 Axios.interceptors.request.use(
   config => {

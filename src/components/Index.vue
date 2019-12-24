@@ -13,7 +13,11 @@
             <span class="help" slot="reference">文件路径</span>
           </el-popover>
         </template>
-        <el-input placeholder="请输入内容" v-model="form.filePath"></el-input>
+        <el-input
+          placeholder="请输入内容"
+          v-model="form.filePath"
+          clearable
+        ></el-input>
       </el-form-item>
       <el-form-item>
         <template #label>
@@ -24,15 +28,23 @@
             trigger="hover"
           >
             <span
-            >请求地址，唯一key,
+              >请求地址，唯一key,
               可以通过请求地址回显数据<code>/login</code>或者<code
-              >/v1/classroom/update/{id}/{type}</code
+                >/v1/classroom/update/{id}/{type}</code
               ></span
             >
             <span class="help" slot="reference">请求地址</span>
           </el-popover>
         </template>
-        <el-input placeholder="请输入内容" v-model="form.path"></el-input>
+        <!--<el-input placeholder="请输入内容" v-model="form.path" @change="checkPath"></el-input>-->
+        <el-autocomplete
+          v-model="form.path"
+          @select="checkPath"
+          :fetch-suggestions="querySearch"
+          placeholder="请输入内容"
+          :trigger-on-focus="false"
+          clearable
+        ></el-autocomplete>
       </el-form-item>
       <el-form-item>
         <template #label>
@@ -65,12 +77,17 @@
         </el-select>
       </el-form-item>
       <el-form-item label="接口名称">
-        <el-input placeholder="请输入内容" v-model="form.summary"></el-input>
+        <el-input
+          placeholder="请输入内容"
+          v-model="form.summary"
+          clearable
+        ></el-input>
       </el-form-item>
       <el-form-item label="接口描述">
         <el-input
           type="textarea"
-          :autosize="{ minRows: 2, maxRows: 4}"
+          clearable
+          :autosize="{ minRows: 4, maxRows: 8 }"
           placeholder="请输入内容"
           v-model="form.description"
         ></el-input>
@@ -83,7 +100,11 @@
             width="200"
             trigger="hover"
           >
-            <span>标签分类可以定义多个，<code>生成的文件名称为标签自然排序第一个</code></span>
+            <span
+              >标签分类可以定义多个，<code
+                >生成的文件名称为标签自然排序第一个</code
+              ></span
+            >
             <span class="help" slot="reference">标签分类</span>
           </el-popover>
         </template>
@@ -112,7 +133,7 @@
           class="button-new-tag"
           size="small"
           @click="showTagInput"
-        >+ 添加
+          >+ 添加
         </el-button>
       </el-form-item>
       <el-form-item label="是否授权">
@@ -130,9 +151,9 @@
             trigger="hover"
           >
             <span
-            >如果<code>文件上传</code>请勾选<code>multipart/form-data</code>,
+              >如果<code>文件上传</code>请勾选<code>multipart/form-data</code>,
               如果请求参数为<code>body</code>，可以定义请求体数据类型<code
-              >application/json,application/xml</code
+                >application/json,application/xml</code
               ></span
             >
             <span class="help" slot="reference">请求内容类型</span>
@@ -177,9 +198,9 @@
             trigger="hover"
           >
             <span
-            >如果参数位置为<code>body</code>, 请填写引用，指向<code
-            >自定义参数</code
-            ></span
+              >如果参数位置为<code>body</code>, 请填写引用，指向<code
+                >自定义参数</code
+              ></span
             >
             <span class="help" slot="reference">请求参数</span>
           </el-popover>
@@ -203,7 +224,7 @@
                 @click="requestDeleteRow(scope.row.id)"
                 :underline="false"
                 type="primary"
-              >删除
+                >删除
               </el-link>
               <el-select
                 v-else-if="scope.column.property === 'in'"
@@ -268,24 +289,19 @@
           <el-popover placement="top" width="200" v-model="confirmSure">
             <p>是否确定删除？</p>
             <div style="text-align: right; margin: 0">
-              <el-button
-                size="mini" type="text" @click="cancelConfirm"
-              >取消
-              </el-button
-              >
+              <el-button size="mini" type="text" @click="cancelConfirm"
+                >取消
+              </el-button>
               <el-button
                 type="primary"
                 size="mini"
                 @click="requestDeleteRow(-1)"
-              >确定
-              </el-button
-              >
+                >确定
+              </el-button>
             </div>
-            <el-button
-              class="ml20" type="warning" slot="reference"
-            >删除
-            </el-button
-            >
+            <el-button class="ml20" type="warning" slot="reference"
+              >删除
+            </el-button>
           </el-popover>
         </el-row>
       </el-form-item>
@@ -298,7 +314,9 @@
             trigger="hover"
           >
             <span>
-              默认指令：<code><pre>{{responseTemplate}}</pre></code>
+              默认指令：<code
+                ><pre>{{ responseTemplate }}</pre></code
+              >
             </span>
             <span class="help" slot="reference">使用默认请求响应</span>
           </el-popover>
@@ -314,7 +332,8 @@
             trigger="hover"
           >
             <span>
-              如果参数位置为<code>body</code>, 请填写引用，指向<code>自定义参数</code>，
+              如果参数位置为<code>body</code>,
+              请填写引用，指向<code>自定义参数</code>，
             </span>
             <span class="help" slot="reference">请求响应设置</span>
           </el-popover>
@@ -338,7 +357,7 @@
                 @click="responseDeleteRow(scope.row.id)"
                 :underline="false"
                 type="primary"
-              >删除
+                >删除
               </el-link>
               <el-select
                 v-else-if="scope.column.property === 'type'"
@@ -385,24 +404,19 @@
           <el-popover placement="top" width="200" v-model="confirmSure2">
             <p>是否确定删除？</p>
             <div style="text-align: right; margin: 0">
-              <el-button
-                size="mini" type="text" @click="cancelConfirm"
-              >取消
-              </el-button
-              >
+              <el-button size="mini" type="text" @click="cancelConfirm"
+                >取消
+              </el-button>
               <el-button
                 type="primary"
                 size="mini"
                 @click="responseDeleteRow(-1)"
-              >确定
-              </el-button
-              >
+                >确定
+              </el-button>
             </div>
-            <el-button
-              class="ml20" type="warning" slot="reference"
-            >删除
-            </el-button
-            >
+            <el-button class="ml20" type="warning" slot="reference"
+              >删除
+            </el-button>
           </el-popover>
         </el-row>
       </el-form-item>
@@ -415,7 +429,7 @@
             @click="addDefinition(index)"
             @close="tagDelete2(index)"
           >
-            {{tag.name}}
+            {{ tag.name }}
           </el-tag>
         </span>
         <el-dialog
@@ -426,7 +440,11 @@
         >
           <el-form label-width="60px">
             <el-form-item label="名称">
-              <el-input placeholder="请输入内容" v-model="definitionData.name"></el-input>
+              <el-input
+                placeholder="请输入内容"
+                v-model="definitionData.name"
+                @change="checkDefinitionName"
+              ></el-input>
             </el-form-item>
             <el-form-item label="模版" class="mt20">
               <el-select
@@ -435,7 +453,7 @@
                 @change="selectDefinition"
               >
                 <el-option
-                  v-for="( definitionTemplateName, dname ) in definitionTemplate"
+                  v-for="(definitionTemplateName, dname) in definitionTemplate"
                   :key="dname"
                   :value="dname"
                   :label="dname"
@@ -462,7 +480,7 @@
                       @click="definitionDeleteRow(scope.row.id)"
                       :underline="false"
                       type="primary"
-                    >删除
+                      >删除
                     </el-link>
                     <el-select
                       v-else-if="scope.column.property === 'type'"
@@ -479,17 +497,18 @@
                     <el-input
                       v-else-if="scope.column.property === 'ref'"
                       :disabled="
-                    !parameterDisableHef.length ||
-                      parameterDisableHef[scope.row.id] !== 1"
+                        !parameterDisableHef.length ||
+                          parameterDisableHef[scope.row.id] !== 1
+                      "
                       v-model="scope.row.ref"
                       clearable
                     ></el-input>
                     <el-input
                       v-else-if="scope.column.property === 'example'"
                       :disabled="
-                    !parameterDisableDefault.length ||
-                      parameterDisableDefault[scope.row.id] !== 1
-                  "
+                        !parameterDisableDefault.length ||
+                          parameterDisableDefault[scope.row.id] !== 1
+                      "
                       v-model="scope.row.example"
                       clearable
                     ></el-input>
@@ -503,28 +522,25 @@
                 </el-table-column>
               </el-table>
               <el-row class="mt20">
-                <el-button type="primary" @click="definitionAddRow()">添加</el-button>
+                <el-button type="primary" @click="definitionAddRow()"
+                  >添加</el-button
+                >
                 <el-popover placement="top" width="200" v-model="confirmSure3">
                   <p>是否确定删除？</p>
                   <div style="text-align: right; margin: 0">
-                    <el-button
-                      size="mini" type="text" @click="cancelConfirm"
-                    >取消
-                    </el-button
-                    >
+                    <el-button size="mini" type="text" @click="cancelConfirm"
+                      >取消
+                    </el-button>
                     <el-button
                       type="primary"
                       size="mini"
                       @click="definitionDeleteRow(-1)"
-                    >确定
-                    </el-button
-                    >
+                      >确定
+                    </el-button>
                   </div>
-                  <el-button
-                    class="ml20" type="warning" slot="reference"
-                  >删除
-                  </el-button
-                  >
+                  <el-button class="ml20" type="warning" slot="reference"
+                    >删除
+                  </el-button>
                 </el-popover>
               </el-row>
             </el-form-item>
@@ -534,45 +550,48 @@
             <el-button type="primary" @click="definitionSave">确 定</el-button>
           </div>
         </el-dialog>
-        <el-button
-          class="button-new-tag"
-          size="small"
-          @click="addDefinition()"
-        >
+        <el-button class="button-new-tag" size="small" @click="addDefinition()">
           + 添加
         </el-button>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="preview">预览</el-button>
-        <el-button type="success" :disabled="!isGenerator" v-if="showSuccess" @click="generator">生成</el-button>
+        <el-button
+          type="success"
+          :disabled="!isGenerator"
+          v-if="showSuccess"
+          @click="generator"
+          >生成</el-button
+        >
       </el-form-item>
       <el-form-item>
-        <el-table
-          :data="previewData"
-          style="width: 100%"
-          v-if="isPreview"
-        >
+        <el-table :data="previewData" style="width: 100%" v-if="isPreview">
           <el-table-column prop="file" label="文件">
             <template slot-scope="scope">
-              <el-link type="primary" @click="fileCompare = true">
-                {{scope.row.file}}
+              <el-link
+                type="primary"
+                @click="fileCompareShow(scope.row.oldStr, scope.row.newStr)"
+              >
+                {{ scope.row.file }}
               </el-link>
               <el-dialog title="文件对比" :visible.sync="fileCompare">
-                <code-diff :old-string="scope.row.oldStr" :new-string="scope.row.newStr" :context="10" />
+                <code-diff
+                  :old-string="oldStr"
+                  :new-string="newStr"
+                  :context="10"
+                />
                 <div slot="footer" class="dialog-footer">
                   <el-button @click="fileCompare = false">取 消</el-button>
-                  <el-button type="primary" @click="sureCompare">确 定</el-button>
+                  <el-button type="primary" @click="sureCompare"
+                    >确 定</el-button
+                  >
                 </div>
               </el-dialog>
             </template>
           </el-table-column>
-          <el-table-column
-            prop="action"
-            label="状态"
-            width="180"
-          >
+          <el-table-column prop="action" label="状态" width="180">
             <template slot-scope="scope">
-              {{previewAction[scope.row.action]}}
+              {{ previewAction[scope.row.action] }}
             </template>
           </el-table-column>
         </el-table>
@@ -601,6 +620,7 @@ export default {
   components: { CodeDiff },
   data() {
     return {
+      path: [],
       formMethods: [
         "GET",
         "POST",
@@ -864,7 +884,9 @@ export default {
       isGenerator: false,
       generatorSuccess: false,
       generatorMessage: "",
-      previewData: []
+      previewData: [],
+      oldStr: "",
+      newStr: ""
     };
   },
   mounted() {
@@ -889,6 +911,9 @@ export default {
       _this.formatParameter(res.default.parameters, _this);
       _this.formatResponse(res.default.responses, _this);
       _this.definitionTemplate = res.default.definitionTemplate;
+      for (let i = 0; i < res.path.length; i++) {
+        _this.path.push({ value: res.path[i] });
+      }
     });
   },
   methods: {
@@ -965,8 +990,7 @@ export default {
         this.parameterDisableHef[id] = 0;
         this.parameterDisableDefault[id] = 1;
         row.ref = "";
-      }
-      else {
+      } else {
         this.parameterDisableHef[id] = 1;
         this.parameterDisableDefault[id] = 0;
       }
@@ -1005,8 +1029,7 @@ export default {
       if (name === "object" || name === "array") {
         this.parameterDisableHef[id] = 1;
         this.parameterDisableDefault[id] = 0;
-      }
-      else {
+      } else {
         row.ref = "";
         this.parameterDisableHef[id] = 0;
         this.parameterDisableDefault[id] = 1;
@@ -1114,8 +1137,7 @@ export default {
           vue.requestChangeIn(parameters[i], 0);
         }
         vue.form.parameter = parameters;
-      }
-      else {
+      } else {
         vue.defaultRequestData();
       }
     },
@@ -1127,8 +1149,7 @@ export default {
           vue.definitionChangeIn(responses[i], 0);
         }
         vue.form.response = responses;
-      }
-      else {
+      } else {
         vue.defaultRequestData();
       }
     },
@@ -1211,7 +1232,10 @@ export default {
       if (definitions.length) {
         for (let i = 0; i < definitions.length; ++i) {
           this.tableIndex++;
-          if (definitions[i]["id"] === undefined || definitions[i]["edit"] < 0) {
+          if (
+            definitions[i]["id"] === undefined ||
+            definitions[i]["edit"] < 0
+          ) {
             definitions[i]["id"] = this.tableIndex;
           }
           definitions[i]["template"] = template;
@@ -1264,8 +1288,7 @@ export default {
       }
       if (this.definitionData.edit < 0) {
         this.form.definition.push(this.definitionData);
-      }
-      else {
+      } else {
         this.form.definition[this.definitionData.edit] = this.definitionData;
       }
       this.dialogFormVisible = false;
@@ -1331,13 +1354,67 @@ export default {
         _this.generatorSuccess = true;
         _this.generatorMessage = res;
       });
+    },
+    fileCompareShow(oldStr, newStr) {
+      this.fileCompare = true;
+      this.oldStr = oldStr;
+      this.newStr = newStr;
+    },
+    checkPath() {
+      let _this = this;
+      _this.$http
+        .get("swagger/generator?t=path&p=" + _this.form.path)
+        .then(res => {
+          if (res.has) {
+            _this.form = res.form;
+          }
+        });
+    },
+    checkDefinitionName() {
+      let _this = this;
+      _this.$http
+        .get(
+          "swagger/generator?t=definition&p=" +
+            _this.form.path +
+            "&n=" +
+            this.definitionData.name
+        )
+        .then(res => {
+          if (res.has) {
+            this.$message.error(
+              "自定义参数【" + this.definitionData.name + "】已存在，请重新命名"
+            );
+            this.definitionData.name = "";
+          }
+        });
+    },
+    querySearch(queryString, cb) {
+      var restaurants = this.path;
+      var results = queryString
+        ? restaurants.filter(this.createFilter(queryString))
+        : restaurants;
+      // 调用 callback 返回建议列表的数据
+      cb(results);
+    },
+    createFilter(queryString) {
+      return restaurant => {
+        return restaurant.value.indexOf(queryString) === 0;
+      };
     }
   },
   watch: {
     form: {
-      handler(newV, oldV) {
-        // eslint-disable-next-line no-console
-        console.log(newV, oldV);
+      handler() {
+        this.isLoadDefinition = false;
+        this.showSuccess = false;
+        this.isPreview = false;
+        this.fileCompare = false;
+        this.isGenerator = false;
+        this.generatorSuccess = false;
+        this.generatorMessage = "";
+        this.previewData = [];
+        this.oldStr = "";
+        this.newStr = "";
       },
       deep: true
     }
@@ -1420,7 +1497,7 @@ code a {
 }
 
 .default-view-results pre .error {
-  background: #FFE0E1;
+  background: #ffe0e1;
   color: black;
   padding: 1px;
 }
@@ -1439,7 +1516,10 @@ pre {
   border-radius: 4px;
 }
 
-code, kbd, pre, samp {
+code,
+kbd,
+pre,
+samp {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 </style>
