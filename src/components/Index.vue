@@ -36,7 +36,6 @@
             <span class="help" slot="reference">请求地址</span>
           </el-popover>
         </template>
-        <!--<el-input placeholder="请输入内容" v-model="form.path" @change="checkPath"></el-input>-->
         <el-autocomplete
           v-model="form.path"
           @select="checkPath"
@@ -44,6 +43,7 @@
           placeholder="请输入内容"
           :trigger-on-focus="false"
           clearable
+          style="width: 100%"
         ></el-autocomplete>
       </el-form-item>
       <el-form-item>
@@ -899,7 +899,7 @@ export default {
   },
   created() {
     let _this = this;
-    _this.$http.get("swagger/generator").then(res => {
+    _this.$http.get("swagger/annotation").then(res => {
       _this.formMethods = res.httpMethods;
       _this.formContentTypes = res.contentTypes;
       _this.parameterIns = res.parameterIns;
@@ -1332,7 +1332,7 @@ export default {
         return;
       }
       let _this = this;
-      _this.$http.post("swagger/generator?t=preview", this.form).then(res => {
+      _this.$http.post("swagger/annotation?t=preview", this.form).then(res => {
         _this.showSuccess = true;
         _this.isPreview = true;
         _this.isGenerator = false;
@@ -1342,14 +1342,20 @@ export default {
     },
     sureCompare() {
       this.fileCompare = false;
-      this.isGenerator = true;
+      let status = false;
+      for (let i = 0; i < this.previewData.length; i++) {
+        if (this.previewData[i]["action"] > 0) {
+          status = true;
+        }
+      }
+      this.isGenerator = status;
     },
     generator() {
       if (!this.checkForm()) {
         return;
       }
       let _this = this;
-      _this.$http.post("swagger/generator?t=generator", this.form).then(res => {
+      _this.$http.post("swagger/annotation?t=generator", this.form).then(res => {
         _this.isPreview = false;
         _this.generatorSuccess = true;
         _this.generatorMessage = res;
@@ -1363,7 +1369,7 @@ export default {
     checkPath() {
       let _this = this;
       _this.$http
-        .get("swagger/generator?t=path&p=" + _this.form.path)
+        .get("swagger/annotation?t=path&p=" + _this.form.path)
         .then(res => {
           if (res.has) {
             _this.form = res.form;
@@ -1374,7 +1380,7 @@ export default {
       let _this = this;
       _this.$http
         .get(
-          "swagger/generator?t=definition&p=" +
+          "swagger/annotation?t=definition&p=" +
             _this.form.path +
             "&n=" +
             this.definitionData.name
