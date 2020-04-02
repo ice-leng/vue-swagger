@@ -1335,7 +1335,8 @@ export default {
       _this.$http.post("swagger/annotation?t=preview", this.form).then(res => {
         _this.showSuccess = true;
         _this.isPreview = true;
-        _this.isGenerator = false;
+        // _this.isGenerator = false;
+        _this.isGenerator = true;
         _this.generatorSuccess = false;
         _this.previewData = res;
       });
